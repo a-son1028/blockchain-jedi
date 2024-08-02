@@ -32,13 +32,6 @@ type EncryptRequest struct {
 }
 
 func main() {
-	data := TestHierarchy
-
-	sEnc := base64.StdEncoding.EncodeToString([]byte(data))
-	fmt.Println(sEnc)
-
-	sDec, _ := base64.StdEncoding.DecodeString(sEnc)
-	fmt.Println(string(sDec))
 	ctx := context.Background()
 	_, store := NewTestKeyStore()
 	encoder := jedi.NewDefaultPatternEncoder(TestPatternSize - jedi.MaxTimeLength)
