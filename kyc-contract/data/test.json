@@ -1,0 +1,28 @@
+{
+   "medicalData": [
+        {
+            "patientName": "John Doe",
+            "age": 35,
+            "bloodType": "A+",
+            "diagnosis": "Hypertension"
+        },
+        {
+            "patientName": "Jane Smith",
+            "age": 42,
+            "bloodType": "B-",
+            "diagnosis": "Diabetes"
+        },
+        {
+            "patientName": "John Doe",
+            "age": 35,
+            "bloodType": "A+",
+            "diagnosis": "Hypertension"
+        },
+        {
+            "patientName": "Jane Smith",
+            "age": 42,
+            "bloodType": "B-",
+            "diagnosis": "Diabetes"
+        }
+    ]
+}

@@ -8,10 +8,11 @@ const crypto = require('crypto');
 const {ethers, deployments, getNamedAccounts, getUnnamedAccounts} = require("hardhat")
 const axios = require('axios');
 const NodeRSA = require('node-rsa');
-
+const testData = require('../data/test.json')
 const ENCRYPTION_KEY = 'WbHPUuDNQLpFtSSGiBtTVSeqPdAHBZzw'; // Replace this with your actual encryption key
 const IV_LENGTH = 16;
 let TOKEN_ID = 1
+
 
 
 const JediInstance = axios.default.create({
@@ -68,11 +69,7 @@ describe("JEDI Blockchain for Medical record TEST", async function () {
   }
 
 
-  const userInfoA = {
-    fullName: "patient A",
-    address: "address 1",
-    age: 20,
-  }
+  const userInfoA = testData
 
   it("Step 1: Generate RSA keys and create NFT for storing KYC on blockchain", async function () {
     const key = new NodeRSA({ b: 512 }); 
