@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"jedi"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shirou/gopsutil/cpu"
 	"github.com/ucbrise/jedi-pairing/lang/go/wkdibe"
 )
 
@@ -29,6 +31,28 @@ type DecryptRequest struct {
 type EncryptRequest struct {
 	URI     string `string:"uri" binding:"required"`
 	MESSAGE string `string:"message" binding:"required"`
+}
+
+type MeasureUsage struct {
+	memory uint64
+	cpuPercentage float64
+}
+
+func measureMemoryUsage()(MeasureUsage) {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	fmt.Printf("Number of CPUs: %d\n", runtime.NumCPU())
+	fmt.Printf("Alloc = %v MiB\n", memStats.Alloc/1024/1024)
+	fmt.Printf("TotalAlloc = %v MiB\n", memStats.TotalAlloc/1024/1024)
+	fmt.Printf("Sys = %v MiB\n", memStats.Sys/1024/1024)
+	fmt.Printf("NumGC = %v\n\n", memStats.NumGC)
+	percentages, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return MeasureUsage{ memory: memStats.Alloc, cpuPercentage: percentages[0] };
 }
 
 func main() {
@@ -76,19 +100,24 @@ func main() {
 			return
 		}
 
+		startTime := time.Now()
 		delegation, err := jedi.Delegate(ctx, store, encoder, TestHierarchy, uri, start, end, jedi.DecryptPermission|jedi.SignPermission)
 		if err != nil {
 			fmt.Println(err)
 		}
+		endTime := time.Now()
 
 		marshalled := delegation.Marshal()
 
 		c.JSON(200, gin.H{
+			"time": endTime.Sub(startTime).Microseconds(),
 			"data": marshalled,
 		})
 	})
 
 	r.POST("/encrypt", func(c *gin.Context) {
+		measureUsageBefore := measureMemoryUsage()
+		fmt.Println(measureUsageBefore)
 		var err error
 
 		var encryptRequest EncryptRequest
@@ -97,10 +126,13 @@ func main() {
 		message := encryptRequest.MESSAGE
 		uri := encryptRequest.URI
 
+		startTime := time.Now()
 		var encrypted []byte
 		if encrypted, err = state.Encrypt(ctx, TestHierarchy, uri, now, []byte(message)); err != nil {
 			fmt.Println(err)
 		}
+		endTime := time.Now()
+		measureUsage := measureMemoryUsage()
 
 		var decrypted []byte
 		if decrypted, err = state.Decrypt(ctx, TestHierarchy, uri, now, encrypted); err != nil {
@@ -115,12 +147,18 @@ func main() {
 			fmt.Println("Original and decrypted messages differ")
 		}
 
+		
+
 		c.JSON(200, gin.H{
+			"time": endTime.Sub(startTime).Microseconds(),
+			"memoryUsage": measureUsage.memory,
+			"cpuPercentage": measureUsage.cpuPercentage,
 			"data": base64.StdEncoding.EncodeToString(encrypted),
 		})
 	})
 
 	r.POST("/decrypt", func(c *gin.Context) {
+		measureMemoryUsage()
 		var err error
 		var decryptRequest DecryptRequest
 		c.BindJSON(&decryptRequest)
@@ -132,6 +170,7 @@ func main() {
 		}
 		uri := decryptRequest.URI
 
+		startTime := time.Now()
 		var decrypted []byte
 		if decrypted, err = state.Decrypt(ctx, TestHierarchy, uri, now, encrypted); err != nil {
 			fmt.Println(err)
@@ -140,15 +179,19 @@ func main() {
 			})
 			return
 		}
+		endTime := time.Now()
+		measureUsage := measureMemoryUsage()
 
 		if !bytes.Equal(decrypted, []byte("test message")) {
 			fmt.Println("Original and decrypted messages differ")
 		}
 
 		str := string(decrypted)
-		fmt.Println(decrypted) // Output: abc
 
 		c.JSON(200, gin.H{
+			"time": endTime.Sub(startTime).Microseconds(),
+			"memoryUsage": measureUsage.memory,
+			"cpuPercentage": measureUsage.cpuPercentage,
 			"data": str,
 		})
 	})
